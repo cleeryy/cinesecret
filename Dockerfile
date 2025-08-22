@@ -13,7 +13,6 @@ RUN corepack enable pnpm && pnpm i --frozen-lockfile --ignore-scripts
 FROM base AS build
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-COPY prisma/ ./prisma/
 
 # Generate Prisma client AVANT le build
 RUN corepack enable pnpm && pnpm prisma generate
@@ -38,7 +37,7 @@ COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=build --chown=nextjs:nodejs /app/public ./public
 
-# Copy Prisma files (SOLUTION au problème!)
+# Copy Prisma files
 COPY --from=build /app/prisma ./prisma/
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
