@@ -42,8 +42,8 @@ COPY --from=build --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=build --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Create public directory
-RUN mkdir -p ./public && chown nextjs:nodejs ./public
-COPY --from=build --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
+RUN mkdir -p ./src/public && chown nextjs:nodejs ./src/public
+COPY --from=build --chown=nextjs:nodejs /app/src/public ./src/public 2>/dev/null || true
 
 USER nextjs
 EXPOSE 3000
