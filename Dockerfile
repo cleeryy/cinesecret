@@ -11,61 +11,41 @@ RUN corepack enable pnpm && pnpm i --frozen-lockfile --ignore-scripts
 
 # Build stage
 FROM base AS build
-# Install OpenSSL for Prisma
 RUN apk add --no-cache libc6-compat openssl
-
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
 # Set dummy environment variables for build
 ENV AUTH_SECRET="dummy-secret-for-build-only"
 ENV DATABASE_URL="postgresql://dummy:dummy@dummy:5432/dummy"
-ENV AUTH_GOOGLE_ID="dummy-google-id"  
+ENV AUTH_GOOGLE_ID="dummy-google-id"
 ENV AUTH_GOOGLE_SECRET="dummy-google-secret"
 ENV AUTH_TRUST_HOST="true"
 
-# Generate Prisma client
+# Generate Prisma client and build
 RUN corepack enable pnpm && pnpm prisma generate
-
-# Build the application
 RUN pnpm build
 
-# Production stage  
+# Production stage - Version simplifiée
 FROM base AS production
 ENV NODE_ENV=production
-
-# Install OpenSSL for Prisma runtime
 RUN apk add --no-cache libc6-compat openssl
 
-# Create non-root user
+# Create user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Create .next directory with proper permissions
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Copy built application
+# Copy everything needed (y compris node_modules pour Prisma)
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=build --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nextjs:nodejs /app/node_modules ./node_modules
 
-# Copy public directory (create if doesn't exist)
-RUN mkdir -p ./public
+# Create public directory
+RUN mkdir -p ./public && chown nextjs:nodejs ./public
 COPY --from=build --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
 
-# Copy Prisma files (gestion pnpm + chemins multiples)
-COPY --from=build /app/prisma ./prisma/ 2>/dev/null || true
-
-# Copy Prisma client (plusieurs emplacements possibles avec pnpm)
-COPY --from=build /app/node_modules/.pnpm/@prisma+client*/node_modules/.prisma ./node_modules/.prisma 2>/dev/null || true
-COPY --from=build /app/node_modules/.pnpm/@prisma+client*/node_modules/@prisma ./node_modules/@prisma 2>/dev/null || true
-
-# Fallback: copier depuis les emplacements standards si existants
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma 2>/dev/null || true
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma 2>/dev/null || true
-
 USER nextjs
-
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
