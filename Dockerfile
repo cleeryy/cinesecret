@@ -5,31 +5,37 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Dependencies stage
 FROM base AS dependencies
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 COPY package.json pnpm-lock.yaml* ./
 RUN corepack enable pnpm && pnpm i --frozen-lockfile --ignore-scripts
 
 # Build stage
 FROM base AS build
+# Install OpenSSL for Prisma
+RUN apk add --no-cache libc6-compat openssl
+
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
 # Set dummy environment variables for build
-ENV AUTH_SECRET="dummy-secret-for-build-only"
-ENV DATABASE_URL="postgresql://dummy:dummy@dummy:5432/dummy"
-ENV AUTH_GOOGLE_ID="dummy-google-id"
-ENV AUTH_GOOGLE_SECRET="dummy-google-secret"
-ENV AUTH_TRUST_HOST="true"
+# ENV AUTH_SECRET="dummy-secret-for-build-only"
+# ENV DATABASE_URL="postgresql://dummy:dummy@dummy:5432/dummy"
+# ENV AUTH_GOOGLE_ID="dummy-google-id"  
+# ENV AUTH_GOOGLE_SECRET="dummy-google-secret"
+# ENV AUTH_TRUST_HOST="true"
 
-# Generate Prisma client AVANT le build
+# Generate Prisma client avec OpenSSL
 RUN corepack enable pnpm && pnpm prisma generate
 
 # Build the application
 RUN pnpm build
 
-# Production stage
+# Production stage  
 FROM base AS production
 ENV NODE_ENV=production
+
+# Install OpenSSL for Prisma runtime
+RUN apk add --no-cache libc6-compat openssl
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
@@ -42,6 +48,9 @@ RUN chown nextjs:nodejs .next
 # Copy built application
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy public directory (create if doesn't exist)
+RUN mkdir -p ./public
 COPY --from=build --chown=nextjs:nodejs /app/public ./public
 
 # Copy Prisma files
