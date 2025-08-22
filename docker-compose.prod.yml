@@ -29,7 +29,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cinesecret}?schema=public
       - AUTH_GITHUB_ID=${AUTH_GITHUB_ID}
       - AUTH_GITHUB_SECRET=${AUTH_GITHUB_SECRET}
-      # APIs de films si utilisées
+      # Variables spécifiques à ton app de films
       - TMDB_API_KEY=${TMDB_API_KEY}
       - OMDB_API_KEY=${OMDB_API_KEY}
     ports:
@@ -37,7 +37,6 @@ services:
     networks:
       - cinesecret-network
     labels:
-      # Labels Watchtower
       - "com.centurylinklabs.watchtower.enable=true"
       - "com.centurylinklabs.watchtower.scope=cinesecret"
     healthcheck:
@@ -47,7 +46,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # Watchtower pour les mises à jour automatiques
   watchtower:
     image: containrrr/watchtower:latest
     container_name: cinesecret-watchtower
@@ -55,15 +53,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - WATCHTOWER_POLL_INTERVAL=300  # 5 minutes
+      - WATCHTOWER_POLL_INTERVAL=300
       - WATCHTOWER_SCOPE=cinesecret
       - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_INCLUDE_STOPPED=true
-      - WATCHTOWER_REVIVE_STOPPED=false
-      # Notifications Slack (optionnel)
-      - WATCHTOWER_NOTIFICATIONS=slack
-      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=${SLACK_WEBHOOK_URL}
-      - WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=cinesecret-prod
     command: --scope cinesecret --cleanup --interval 300
     networks:
       - cinesecret-network
