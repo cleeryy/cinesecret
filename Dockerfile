@@ -14,6 +14,13 @@ FROM base AS build
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
+# Set dummy environment variables for build
+ENV AUTH_SECRET="dummy-secret-for-build-only"
+ENV DATABASE_URL="postgresql://dummy:dummy@dummy:5432/dummy"
+ENV AUTH_GOOGLE_ID="dummy-google-id"
+ENV AUTH_GOOGLE_SECRET="dummy-google-secret"
+ENV AUTH_TRUST_HOST="true"
+
 # Generate Prisma client AVANT le build
 RUN corepack enable pnpm && pnpm prisma generate
 
