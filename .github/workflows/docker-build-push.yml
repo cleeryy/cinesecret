@@ -2,7 +2,7 @@ name: CineSecret Docker Build
 
 on:
   schedule:
-    - cron: '44 1 * * *'  # Rebuild quotidien pour les mises à jour de sécurité
+    - cron: '44 1 * * *'
   push:
     branches: [ "master", "main" ]
     tags: [ 'v*.*.*' ]
@@ -44,7 +44,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934
+        uses: docker/metadata-action@96383f45573cb7f253d731d3b3ab81c87ef81934
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
