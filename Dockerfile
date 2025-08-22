@@ -24,7 +24,7 @@ ENV AUTH_GOOGLE_ID="dummy-google-id"
 ENV AUTH_GOOGLE_SECRET="dummy-google-secret"
 ENV AUTH_TRUST_HOST="true"
 
-# Generate Prisma client avec OpenSSL
+# Generate Prisma client
 RUN corepack enable pnpm && pnpm prisma generate
 
 # Build the application
@@ -51,12 +51,18 @@ COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy public directory (create if doesn't exist)
 RUN mkdir -p ./public
-COPY --from=build --chown=nextjs:nodejs /app/public ./public
+COPY --from=build --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
 
-# Copy Prisma files
-COPY --from=build /app/prisma ./prisma/
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
+# Copy Prisma files (gestion pnpm + chemins multiples)
+COPY --from=build /app/prisma ./prisma/ 2>/dev/null || true
+
+# Copy Prisma client (plusieurs emplacements possibles avec pnpm)
+COPY --from=build /app/node_modules/.pnpm/@prisma+client*/node_modules/.prisma ./node_modules/.prisma 2>/dev/null || true
+COPY --from=build /app/node_modules/.pnpm/@prisma+client*/node_modules/@prisma ./node_modules/@prisma 2>/dev/null || true
+
+# Fallback: copier depuis les emplacements standards si existants
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma 2>/dev/null || true
+COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma 2>/dev/null || true
 
 USER nextjs
 
